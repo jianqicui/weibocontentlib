@@ -1,0 +1,25 @@
+<beans:beans xmlns="http://www.springframework.org/schema/security"
+	xmlns:beans="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+           http://www.springframework.org/schema/security
+           http://www.springframework.org/schema/security/spring-security.xsd">
+
+	<http>
+		<intercept-url pattern="/**" access="ROLE_OPERATOR" />
+		<form-login />
+		<logout />
+	</http>
+
+	<authentication-manager>
+		<authentication-provider user-service-ref="operatorDetailsService">
+			<password-encoder hash="sha" />
+		</authentication-provider>
+	</authentication-manager>
+
+	<beans:bean id="operatorDetailsService"
+		class="org.weibocontentlib.api.security.OperatorDetailsService">
+		<beans:property name="operatorService" ref="operatorService" />
+	</beans:bean>
+
+</beans:beans>
