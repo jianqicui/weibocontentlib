@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="
+	http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/tx
+    http://www.springframework.org/schema/tx/spring-tx.xsd
+    http://www.springframework.org/schema/aop
+    http://www.springframework.org/schema/aop/spring-aop.xsd
+    http://www.springframework.org/schema/task
+    http://www.springframework.org/schema/task/spring-task.xsd">
+
+	<bean
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations">
+			<list>
+				<value>classpath:mysql.properties</value>
+				<value>classpath:sae.properties</value>
+			</list>
+		</property>
+	</bean>
+
+	<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource">
+		<property name="driverClassName">
+			<value>${mysql.driverClassName}</value>
+		</property>
+		<property name="url">
+			<value>${mysql.url}</value>
+		</property>
+		<property name="username">
+			<value>${mysql.username}</value>
+		</property>
+		<property name="password">
+			<value>${mysql.password}</value>
+		</property>
+	</bean>
+
+	<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+
+	<bean id="txManager"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+
+	<tx:advice id="txAdvice" transaction-manager="txManager">
+		<tx:attributes>
+			<tx:method name="get*" read-only="true" />
+			<tx:method name="*" />
+		</tx:attributes>
+	</tx:advice>
+
+	<aop:config>
+		<aop:pointcut id="serviceOperation"
+			expression="execution(* org.weibocontentlib.service.*Service.*(..))" />
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="serviceOperation" />
+	</aop:config>
+
+	<!-- DAO -->
+	<bean id="operatorDao" class="org.weibocontentlib.dao.jdbc.OperatorDaoImpl">
+		<property name="jdbcTemplate" ref="jdbcTemplate" />
+	</bean>
+	
+	<bean id="activeUserDao" class="org.weibocontentlib.dao.jdbc.ActiveUserJdbcDao">
+		<property name="jdbcTemplate" ref="jdbcTemplate" />
+	</bean>
+
+	<bean id="categoryDao" class="org.weibocontentlib.dao.jdbc.CategoryJdbcDao">
+		<property name="jdbcTemplate" ref="jdbcTemplate" />
+	</bean>
+
+	<bean id="typeDao" class="org.weibocontentlib.dao.jdbc.TypeJdbcDao">
+		<property name="jdbcTemplate" ref="jdbcTemplate" />
+	</bean>
+
+	<bean id="collectedUserDao" class="org.weibocontentlib.dao.jdbc.CollectedUserJdbcDao">
+		<property name="jdbcTemplate" ref="jdbcTemplate" />
+	</bean>
+
+	<bean id="statusDao" class="org.weibocontentlib.dao.jdbc.StatusJdbcDao">
+		<property name="jdbcTemplate" ref="jdbcTemplate" />
+	</bean>
+
+	<!-- Service -->
+	<bean id="operatorService" class="org.weibocontentlib.service.impl.OperatorServiceImpl">
+		<property name="operatorDao" ref="operatorDao" />
+	</bean>
+	
+	<bean id="activeUserService" class="org.weibocontentlib.service.impl.ActiveUserServiceImpl">
+		<property name="activeUserDao" ref="activeUserDao" />
+	</bean>
+
+	<bean id="categoryService" class="org.weibocontentlib.service.impl.CategoryServiceImpl">
+		<property name="categoryDao" ref="categoryDao" />
+	</bean>
+
+	<bean id="typeService" class="org.weibocontentlib.service.impl.TypeServiceImpl">
+		<property name="typeDao" ref="typeDao" />
+	</bean>
+
+	<bean id="collectedUserService"
+		class="org.weibocontentlib.service.impl.CollectedUserServiceImpl">
+		<property name="collectedUserDao" ref="collectedUserDao" />
+	</bean>
+
+	<bean id="statusService" class="org.weibocontentlib.service.impl.StatusServiceImpl">
+		<property name="statusDao" ref="statusDao" />
+	</bean>
+
+	<!-- Handler -->
+	<bean id="weiboHandler" class="org.weibocontentlib.handler.WeiboHandler"
+		init-method="initialize" />
+
+	<bean id="vdiskHandler" class="org.weibocontentlib.handler.VdiskHandler" />
+
+	<bean id="saeStorageHandler" class="org.weibocontentlib.handler.SaeStorageHandler" />
+	
+	<bean id="saeAppBatchhelperHandler" class="org.weibocontentlib.handler.SaeAppBatchhelperHandler" />
+
+	<!-- Action -->
+	<bean id="weiboContentLibAction" class="org.weibocontentlib.action.WeiboContentLibAction"
+		init-method="initialize">
+		<property name="activeUserService" ref="activeUserService" />
+		<property name="categoryService" ref="categoryService" />
+		<property name="typeService" ref="typeService" />
+		<property name="collectedUserService" ref="collectedUserService" />
+		<property name="statusService" ref="statusService" />
+		<property name="weiboHandler" ref="weiboHandler" />
+		<property name="filteredStatusSize">
+			<value>10</value>
+		</property>
+		<property name="transferedStatusSize">
+			<value>10</value>
+		</property>
+		<property name="vdiskHandler" ref="vdiskHandler" />
+		<property name="saeStorageHandler" ref="saeStorageHandler" />
+		<property name="saeStorageAccessKey">
+			<value>${storage.accessKey}</value>
+		</property>
+		<property name="saeStorageSecretKey">
+			<value>${storage.secretKey}</value>
+		</property>
+		<property name="saeAppBatchhelperHandler" ref="saeAppBatchhelperHandler" />
+	</bean>
+
+	<!-- Task -->
+	<!--
+	<task:scheduler id="scheduler" pool-size="10" />
+	<task:scheduled-tasks scheduler="scheduler">
+		<task:scheduled ref="weiboContentLibAction" method="collectStatuses"
+			cron="0 0 0,3,6,9,12,15,18,21 * * ?" />
+		<task:scheduled ref="weiboContentLibAction" method="filterStatuses"
+			cron="0 0 1,4,7,10,13,16,19,22 * * ?" />
+		<task:scheduled ref="weiboContentLibAction" method="transferStatuses"
+			cron="0 0 2,5,8,11,14,17,20,23 * * ?" />
+		<task:scheduled ref="weiboContentLibAction" method="publishStatuses"
+			cron="0 0 0,2,4,6,8,10,12,14,16,18,20,22 * * ?" />
+	</task:scheduled-tasks>
+	-->
+	
+</beans>
