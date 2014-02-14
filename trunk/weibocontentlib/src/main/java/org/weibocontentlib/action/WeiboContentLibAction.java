@@ -277,30 +277,6 @@ public class WeiboContentLibAction {
 		return cookies;
 	}
 
-	private void refreshActiveUser(DefaultHttpClient defaultHttpClient,
-			ActiveUserPhase activeUserPhase) {
-		try {
-			ActiveUser activeUser = activeUserService
-					.getActiveUser(activeUserPhase);
-
-			setCookies(defaultHttpClient, activeUser.getCookies());
-
-			weiboHandler.refresh(defaultHttpClient);
-
-			activeUser.setCookies(getCookies(defaultHttpClient));
-
-			activeUserService.updateActiveUser(activeUserPhase, activeUser);
-		} catch (ServiceException e) {
-			logger.error("Exception", e);
-
-			throw new ActionException(e);
-		} catch (HandlerException e) {
-			logger.error("Exception", e);
-
-			throw new ActionException(e);
-		}
-	}
-
 	private int getCurrentPageNo(int pageSize, int pageNo, int currentPageSize) {
 		int currentPageNo;
 
@@ -324,7 +300,47 @@ public class WeiboContentLibAction {
 	public void collectStatuses() {
 		DefaultHttpClient defaultHttpClient = getDefaultHttpClient();
 
-		refreshActiveUser(defaultHttpClient, ActiveUserPhase.collecting);
+		ActiveUser activeUser;
+
+		ActiveUserPhase activeUserPhase = ActiveUserPhase.collecting;
+
+		try {
+			activeUser = activeUserService.getActiveUser(activeUserPhase);
+		} catch (ServiceException e) {
+			logger.error("Exception", e);
+
+			throw new ActionException(e);
+		}
+
+		setCookies(defaultHttpClient, activeUser.getCookies());
+
+		boolean successful = false;
+
+		for (int i = 0; i < 10; i++) {
+			try {
+				weiboHandler.refresh(defaultHttpClient);
+
+				successful = true;
+
+				break;
+			} catch (HandlerException e) {
+				continue;
+			}
+		}
+
+		if (!successful) {
+			return;
+		}
+
+		activeUser.setCookies(getCookies(defaultHttpClient));
+
+		try {
+			activeUserService.updateActiveUser(activeUserPhase, activeUser);
+		} catch (ServiceException e) {
+			logger.error("Exception", e);
+
+			throw new ActionException(e);
+		}
 
 		List<Category> categoryList;
 
@@ -699,17 +715,63 @@ public class WeiboContentLibAction {
 	public void transferStatuses() {
 		DefaultHttpClient defaultHttpClient = getDefaultHttpClient();
 
-		refreshActiveUser(defaultHttpClient, ActiveUserPhase.transfering);
+		ActiveUser activeUser;
 
-		SaeStorage saeStorage;
+		ActiveUserPhase activeUserPhase = ActiveUserPhase.transfering;
 
 		try {
-			saeStorage = saeStorageHandler.login(defaultHttpClient,
-					saeStorageAccessKey, saeStorageSecretKey);
-		} catch (HandlerException e) {
+			activeUser = activeUserService.getActiveUser(activeUserPhase);
+		} catch (ServiceException e) {
 			logger.error("Exception", e);
 
 			throw new ActionException(e);
+		}
+
+		setCookies(defaultHttpClient, activeUser.getCookies());
+
+		boolean successful = false;
+
+		for (int i = 0; i < 10; i++) {
+			try {
+				weiboHandler.refresh(defaultHttpClient);
+
+				successful = true;
+
+				break;
+			} catch (HandlerException e) {
+				continue;
+			}
+		}
+
+		if (!successful) {
+			return;
+		}
+
+		activeUser.setCookies(getCookies(defaultHttpClient));
+
+		try {
+			activeUserService.updateActiveUser(activeUserPhase, activeUser);
+		} catch (ServiceException e) {
+			logger.error("Exception", e);
+
+			throw new ActionException(e);
+		}
+
+		SaeStorage saeStorage = null;
+
+		for (int i = 0; i < 10; i++) {
+			try {
+				saeStorage = saeStorageHandler.login(defaultHttpClient,
+						saeStorageAccessKey, saeStorageSecretKey);
+
+				break;
+			} catch (HandlerException e) {
+				continue;
+			}
+		}
+
+		if (saeStorage == null) {
+			return;
 		}
 
 		List<Category> categoryList;
@@ -836,12 +898,22 @@ public class WeiboContentLibAction {
 				for (ActiveUser activeUser : activeUserList) {
 					setCookies(defaultHttpClient, activeUser.getCookies());
 
-					try {
-						weiboHandler.refresh(defaultHttpClient);
-					} catch (HandlerException e) {
-						logger.error("Exception", e);
+					boolean successful = false;
 
-						throw new ActionException(e);
+					for (int i = 0; i < 10; i++) {
+						try {
+							weiboHandler.refresh(defaultHttpClient);
+
+							successful = true;
+
+							break;
+						} catch (HandlerException e) {
+							continue;
+						}
+					}
+
+					if (!successful) {
+						continue;
 					}
 
 					activeUser.setCookies(getCookies(defaultHttpClient));
