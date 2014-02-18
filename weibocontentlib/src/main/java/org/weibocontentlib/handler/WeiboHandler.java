@@ -170,26 +170,30 @@ public class WeiboHandler {
 
 		String content = get(httpClient, url);
 
-		int pageSize;
-
-		String html;
+		JsonNode jsonNode;
 
 		try {
-			JsonNode jsonNode = objectMapper.readTree(content);
-
-			JsonNode htmlJsonNode = jsonNode.get("data");
-
-			html = htmlJsonNode.asText();
+			jsonNode = objectMapper.readTree(content);
 		} catch (JsonProcessingException e) {
 			throw new HandlerException(e);
 		} catch (IOException e) {
 			throw new HandlerException(e);
 		}
 
-		Matcher matcher = pageSizePattern.matcher(html);
+		int pageSize;
 
-		if (matcher.find()) {
-			pageSize = Integer.parseInt(matcher.group(1));
+		JsonNode htmlJsonNode = jsonNode.get("data");
+
+		if (htmlJsonNode != null) {
+			String html = htmlJsonNode.asText();
+
+			Matcher matcher = pageSizePattern.matcher(html);
+
+			if (matcher.find()) {
+				pageSize = Integer.parseInt(matcher.group(1));
+			} else {
+				throw new HandlerException("GetPageSize failed");
+			}
 		} else {
 			throw new HandlerException("GetPageSize failed");
 		}
@@ -284,24 +288,26 @@ public class WeiboHandler {
 
 	private List<Status> parseJsonElement(String content)
 			throws HandlerException {
-		List<Status> statusList;
+		JsonNode jsonNode;
 
 		try {
-			JsonNode jsonNode = objectMapper.readTree(content);
-
-			JsonNode htmlJsonNode = jsonNode.get("data");
-
-			if (htmlJsonNode != null) {
-				String html = htmlJsonNode.asText();
-
-				statusList = parseDetail(html);
-			} else {
-				throw new HandlerException("ParseJsonElement failed");
-			}
+			jsonNode = objectMapper.readTree(content);
 		} catch (JsonProcessingException e) {
 			throw new HandlerException(e);
 		} catch (IOException e) {
 			throw new HandlerException(e);
+		}
+
+		List<Status> statusList;
+
+		JsonNode htmlJsonNode = jsonNode.get("data");
+
+		if (htmlJsonNode != null) {
+			String html = htmlJsonNode.asText();
+
+			statusList = parseDetail(html);
+		} else {
+			throw new HandlerException("ParseJsonElement failed");
 		}
 
 		return statusList;
