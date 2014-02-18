@@ -36,7 +36,7 @@ public class SaeAppBatchhelperHandler {
 		}
 	}
 
-	public void publishEntity(HttpClient httpClient, HttpEntity httpEntity)
+	private void publishEntity(HttpClient httpClient, HttpEntity httpEntity)
 			throws HandlerException {
 		String url = "http://batchhelper.sinaapp.com/action.php?action=uploadStatus";
 
