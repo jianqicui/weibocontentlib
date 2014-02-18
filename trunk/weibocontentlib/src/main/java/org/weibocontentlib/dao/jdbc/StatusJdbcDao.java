@@ -64,6 +64,19 @@ public class StatusJdbcDao implements StatusDao {
 	}
 
 	@Override
+	public int getStatusSize(int categoryId, int typeId, StatusPhase statusPhase)
+			throws DaoException {
+		String sql = "select count(*) from "
+				+ getTableName(categoryId, typeId, statusPhase);
+
+		try {
+			return jdbcTemplate.queryForObject(sql, Integer.class);
+		} catch (Exception e) {
+			throw new DaoException(e);
+		}
+	}
+
+	@Override
 	public List<Status> getStatusList(int categoryId, int typeId,
 			StatusPhase statusPhase, int index, int size) throws DaoException {
 		String sql = "select id, status_text, status_picture_file from "
@@ -105,19 +118,6 @@ public class StatusJdbcDao implements StatusDao {
 
 		try {
 			jdbcTemplate.update(sql, id);
-		} catch (Exception e) {
-			throw new DaoException(e);
-		}
-	}
-
-	@Override
-	public int getStatusSize(int categoryId, int typeId, StatusPhase statusPhase)
-			throws DaoException {
-		String sql = "select count(*) from "
-				+ getTableName(categoryId, typeId, statusPhase);
-
-		try {
-			return jdbcTemplate.queryForObject(sql, Integer.class);
 		} catch (Exception e) {
 			throw new DaoException(e);
 		}
