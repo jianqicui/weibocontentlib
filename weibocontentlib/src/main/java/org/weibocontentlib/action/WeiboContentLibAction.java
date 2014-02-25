@@ -200,8 +200,8 @@ public class WeiboContentLibAction {
 		BasicHttpParams basicHttpParams = new BasicHttpParams();
 
 		basicHttpParams.setParameter(CoreConnectionPNames.CONNECTION_TIMEOUT,
-				60000);
-		basicHttpParams.setParameter(CoreConnectionPNames.SO_TIMEOUT, 60000);
+				600000);
+		basicHttpParams.setParameter(CoreConnectionPNames.SO_TIMEOUT, 600000);
 
 		return new DefaultHttpClient(poolingClientConnectionManager,
 				basicHttpParams);
