@@ -123,6 +123,5 @@
 			<version>9.0.6.v20130930</version>
 			<scope>test</scope>
 		</dependency>
-
 	</dependencies>
 </project>
