@@ -302,7 +302,7 @@ public class WeiboContentLibAction {
 
 		ActiveUser activeUser;
 
-		ActiveUserPhase activeUserPhase = ActiveUserPhase.collecting;
+		ActiveUserPhase activeUserPhase = ActiveUserPhase.querying;
 
 		try {
 			activeUser = activeUserService.getActiveUser(activeUserPhase);

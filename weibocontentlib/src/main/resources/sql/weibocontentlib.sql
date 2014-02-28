@@ -3,7 +3,7 @@ create database if not exists weibocontentlib default charset utf8 collate utf8_
 
 use weibocontentlib;
 
-create table user_collecting (
+create table user_querying (
 	id int not null auto_increment,
   	cookies text not null,
   	created_timestamp timestamp not null,
@@ -24,6 +24,3 @@ create table operator (
   	role varchar(20) not null,
   	primary key (id)
 );
-
-insert into operator (name, password, role) values 
-('admin', '638091df2786a6e7d287c637f4165d43c5ad7bb6', 'ROLE_OPERATOR');
