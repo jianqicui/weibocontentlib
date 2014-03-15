@@ -5,6 +5,8 @@
            http://www.springframework.org/schema/security
            http://www.springframework.org/schema/security/spring-security.xsd">
 
+	<http pattern="/health.txt" security="none" />
+
 	<http>
 		<intercept-url pattern="/**" access="ROLE_OPERATOR" />
 		<form-login />
