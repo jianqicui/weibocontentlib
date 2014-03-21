@@ -175,7 +175,7 @@
 		<property name="statusService" ref="statusService" />
 		<property name="weiboHandler" ref="weiboHandler" />
 		<property name="filteredStatusSize">
-			<value>1</value>
+			<value>2</value>
 		</property>
 		<property name="transferedStatusSize">
 			<value>10</value>

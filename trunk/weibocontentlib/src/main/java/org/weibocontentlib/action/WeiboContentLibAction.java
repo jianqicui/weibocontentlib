@@ -415,14 +415,6 @@ public class WeiboContentLibAction {
 					if (currentPageNo > 1) {
 						List<Status> statuses = new ArrayList<Status>();
 
-						statusSize = 0;
-
-						logger.debug(String
-								.format("Begin to collect statuses, categoryId = %s, typeId = %s, userId = %s, pageSize = %s, pageNo = %s, statusSize = %s",
-										categoryId, typeId, userId,
-										currentPageSize, currentPageNo,
-										statusSize));
-
 						for (int i = 0; i < 10; i++) {
 							try {
 								statuses = weiboHandler.getStatusListByPageNo(
@@ -434,14 +426,6 @@ public class WeiboContentLibAction {
 								continue;
 							}
 						}
-
-						statusSize = statuses.size();
-
-						logger.debug(String
-								.format("End to collect statuses, categoryId = %s, typeId = %s, userId = %s, pageSize = %s, pageNo = %s, statusSize = %s",
-										categoryId, typeId, userId,
-										currentPageSize, currentPageNo,
-										statusSize));
 
 						statusList.addAll(statuses);
 
