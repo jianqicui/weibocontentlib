@@ -97,6 +97,8 @@ public class WeiboContentLibAction {
 
 	private ObjectMapper objectMapper;
 
+	private DefaultHttpClient defaultHttpClient;
+
 	public void setActiveUserService(ActiveUserService activeUserService) {
 		this.activeUserService = activeUserService;
 	}
@@ -153,6 +155,12 @@ public class WeiboContentLibAction {
 
 	public void initialize() {
 		objectMapper = new ObjectMapper();
+
+		defaultHttpClient = getDefaultHttpClient();
+	}
+
+	public void destroy() {
+		defaultHttpClient.getConnectionManager().shutdown();
 	}
 
 	private DefaultHttpClient getDefaultHttpClient() {
@@ -325,8 +333,6 @@ public class WeiboContentLibAction {
 	}
 
 	public void collectStatuses() {
-		DefaultHttpClient defaultHttpClient = getDefaultHttpClient();
-
 		ActiveUser activeUser;
 
 		ActiveUserPhase activeUserPhase = ActiveUserPhase.querying;
@@ -492,8 +498,6 @@ public class WeiboContentLibAction {
 								categoryId, typeId, statusSize));
 			}
 		}
-
-		defaultHttpClient.getConnectionManager().shutdown();
 	}
 
 	private boolean isSimilarStatusExisting(int categoryId, int typeId,
@@ -724,8 +728,6 @@ public class WeiboContentLibAction {
 	}
 
 	public void transferStatuses() {
-		DefaultHttpClient defaultHttpClient = getDefaultHttpClient();
-
 		ActiveUser activeUser;
 
 		ActiveUserPhase activeUserPhase = ActiveUserPhase.transfering;
@@ -860,13 +862,9 @@ public class WeiboContentLibAction {
 								categoryId, typeId, statusSize));
 			}
 		}
-
-		defaultHttpClient.getConnectionManager().shutdown();
 	}
 
 	public void publishStatuses() {
-		DefaultHttpClient defaultHttpClient = getDefaultHttpClient();
-
 		List<Category> categoryList;
 
 		try {
@@ -985,8 +983,6 @@ public class WeiboContentLibAction {
 				}
 			}
 		}
-
-		defaultHttpClient.getConnectionManager().shutdown();
 	}
 
 }
