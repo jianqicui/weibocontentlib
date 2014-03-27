@@ -97,7 +97,11 @@ public class WeiboContentLibAction {
 
 	private ObjectMapper objectMapper;
 
-	private DefaultHttpClient defaultHttpClient;
+	private DefaultHttpClient collectingDefaultHttpClient;
+
+	private DefaultHttpClient transferingDefaultHttpClient;
+
+	private DefaultHttpClient publishingDefaultHttpClient;
 
 	public void setActiveUserService(ActiveUserService activeUserService) {
 		this.activeUserService = activeUserService;
@@ -156,11 +160,15 @@ public class WeiboContentLibAction {
 	public void initialize() {
 		objectMapper = new ObjectMapper();
 
-		defaultHttpClient = getDefaultHttpClient();
+		collectingDefaultHttpClient = getDefaultHttpClient();
+		transferingDefaultHttpClient = getDefaultHttpClient();
+		publishingDefaultHttpClient = getDefaultHttpClient();
 	}
 
 	public void destroy() {
-		defaultHttpClient.getConnectionManager().shutdown();
+		collectingDefaultHttpClient.getConnectionManager().shutdown();
+		transferingDefaultHttpClient.getConnectionManager().shutdown();
+		publishingDefaultHttpClient.getConnectionManager().shutdown();
 	}
 
 	private DefaultHttpClient getDefaultHttpClient() {
@@ -345,27 +353,15 @@ public class WeiboContentLibAction {
 			throw new ActionException(e);
 		}
 
-		setCookies(defaultHttpClient, activeUser.getCookies());
+		setCookies(collectingDefaultHttpClient, activeUser.getCookies());
 
-		boolean successful = false;
-
-		for (int i = 0; i < 10; i++) {
-			try {
-				weiboHandler.refresh(defaultHttpClient);
-
-				successful = true;
-
-				break;
-			} catch (HandlerException e) {
-				continue;
-			}
-		}
-
-		if (!successful) {
+		try {
+			weiboHandler.refresh(collectingDefaultHttpClient);
+		} catch (HandlerException e) {
 			return;
 		}
 
-		activeUser.setCookies(getCookies(defaultHttpClient));
+		activeUser.setCookies(getCookies(collectingDefaultHttpClient));
 
 		try {
 			activeUserService.updateActiveUser(activeUserPhase, activeUser);
@@ -425,20 +421,12 @@ public class WeiboContentLibAction {
 					int pageSize = collectedUser.getPageSize();
 					int pageNo = collectedUser.getPageNo();
 
-					int currentPageSize = 0;
+					int currentPageSize;
 
-					for (int i = 0; i < 10; i++) {
-						try {
-							currentPageSize = weiboHandler.getPageSize(
-									defaultHttpClient, userId);
-
-							break;
-						} catch (HandlerException e) {
-							continue;
-						}
-					}
-
-					if (currentPageSize == 0) {
+					try {
+						currentPageSize = weiboHandler.getPageSize(
+								collectingDefaultHttpClient, userId);
+					} catch (HandlerException e) {
 						continue;
 					}
 
@@ -446,18 +434,14 @@ public class WeiboContentLibAction {
 							currentPageSize);
 
 					if (currentPageNo > 1) {
-						List<Status> statuses = new ArrayList<Status>();
+						List<Status> statuses;
 
-						for (int i = 0; i < 10; i++) {
-							try {
-								statuses = weiboHandler.getStatusListByPageNo(
-										defaultHttpClient, userId,
-										currentPageNo);
-
-								break;
-							} catch (HandlerException e) {
-								continue;
-							}
+						try {
+							statuses = weiboHandler.getStatusListByPageNo(
+									collectingDefaultHttpClient, userId,
+									currentPageNo);
+						} catch (HandlerException e) {
+							statuses = new ArrayList<Status>();
 						}
 
 						statusList.addAll(statuses);
@@ -677,17 +661,15 @@ public class WeiboContentLibAction {
 		String destStatusPictureFile = destStatusPathPrefix
 				+ statusPictureFileExt;
 
-		for (int i = 0; i < 10; i++) {
-			try {
-				vdiskHandler.addBytes(httpClient, statusTextBytes,
-						destStatusTextFile);
-				vdiskHandler.addBytes(httpClient, statusPictureFileBytes,
-						destStatusPictureFile);
+		try {
+			vdiskHandler.addBytes(httpClient, statusTextBytes,
+					destStatusTextFile);
+			vdiskHandler.addBytes(httpClient, statusPictureFileBytes,
+					destStatusPictureFile);
+		} catch (HandlerException e) {
+			logger.error("Exception", e);
 
-				break;
-			} catch (HandlerException e) {
-				continue;
-			}
+			throw new ActionException(e);
 		}
 	}
 
@@ -713,17 +695,15 @@ public class WeiboContentLibAction {
 		String destStatusPictureFile = destStatusPathPrefix
 				+ statusPictureFileExt;
 
-		for (int i = 0; i < 10; i++) {
-			try {
-				saeStorageHandler.addBytes(httpClient, saeStorage,
-						statusTextBytes, destStatusTextFile);
-				saeStorageHandler.addBytes(httpClient, saeStorage,
-						statusPictureFileBytes, destStatusPictureFile);
+		try {
+			saeStorageHandler.addBytes(httpClient, saeStorage, statusTextBytes,
+					destStatusTextFile);
+			saeStorageHandler.addBytes(httpClient, saeStorage,
+					statusPictureFileBytes, destStatusPictureFile);
+		} catch (HandlerException e) {
+			logger.error("Exception", e);
 
-				break;
-			} catch (HandlerException e) {
-				continue;
-			}
+			throw new ActionException(e);
 		}
 	}
 
@@ -740,27 +720,15 @@ public class WeiboContentLibAction {
 			throw new ActionException(e);
 		}
 
-		setCookies(defaultHttpClient, activeUser.getCookies());
+		setCookies(transferingDefaultHttpClient, activeUser.getCookies());
 
-		boolean successful = false;
-
-		for (int i = 0; i < 10; i++) {
-			try {
-				weiboHandler.refresh(defaultHttpClient);
-
-				successful = true;
-
-				break;
-			} catch (HandlerException e) {
-				continue;
-			}
-		}
-
-		if (!successful) {
+		try {
+			weiboHandler.refresh(transferingDefaultHttpClient);
+		} catch (HandlerException e) {
 			return;
 		}
 
-		activeUser.setCookies(getCookies(defaultHttpClient));
+		activeUser.setCookies(getCookies(transferingDefaultHttpClient));
 
 		try {
 			activeUserService.updateActiveUser(activeUserPhase, activeUser);
@@ -770,20 +738,12 @@ public class WeiboContentLibAction {
 			throw new ActionException(e);
 		}
 
-		SaeStorage saeStorage = null;
+		SaeStorage saeStorage;
 
-		for (int i = 0; i < 10; i++) {
-			try {
-				saeStorage = saeStorageHandler.login(defaultHttpClient,
-						saeStorageAccessKey, saeStorageSecretKey);
-
-				break;
-			} catch (HandlerException e) {
-				continue;
-			}
-		}
-
-		if (saeStorage == null) {
+		try {
+			saeStorage = saeStorageHandler.login(transferingDefaultHttpClient,
+					saeStorageAccessKey, saeStorageSecretKey);
+		} catch (HandlerException e) {
 			return;
 		}
 
@@ -836,11 +796,12 @@ public class WeiboContentLibAction {
 				for (Status status : statusList) {
 					String transferedName = UUID.randomUUID().toString();
 
-					transferStatusToVdisk(defaultHttpClient, categoryId,
-							typeId, status, transferedName);
+					transferStatusToVdisk(transferingDefaultHttpClient,
+							categoryId, typeId, status, transferedName);
 
 					if (categoryId == 2) {
-						transferStatusToSaeStorage(defaultHttpClient, typeId,
+						transferStatusToSaeStorage(
+								transferingDefaultHttpClient, typeId,
 								saeStorage, status, transferedName);
 					}
 
@@ -905,30 +866,21 @@ public class WeiboContentLibAction {
 				}
 
 				for (ActiveUser activeUser : activeUserList) {
-					setCookies(defaultHttpClient, activeUser.getCookies());
+					setCookies(publishingDefaultHttpClient,
+							activeUser.getCookies());
 
-					boolean successful = false;
-
-					for (int i = 0; i < 10; i++) {
-						try {
-							weiboHandler.refresh(defaultHttpClient);
-
-							successful = true;
-
-							break;
-						} catch (HandlerException e) {
-							continue;
-						}
-					}
-
-					if (!successful) {
+					try {
+						weiboHandler.refresh(publishingDefaultHttpClient);
+					} catch (HandlerException e) {
 						continue;
 					}
 
-					activeUser.setCookies(getCookies(defaultHttpClient));
+					activeUser
+							.setCookies(getCookies(publishingDefaultHttpClient));
 
 					try {
-						saeAppBatchhelperHandler.authorize(defaultHttpClient);
+						saeAppBatchhelperHandler
+								.authorize(publishingDefaultHttpClient);
 					} catch (HandlerException e) {
 						logger.error("Exception", e);
 
@@ -958,7 +910,7 @@ public class WeiboContentLibAction {
 					for (Status status : statusList) {
 						try {
 							saeAppBatchhelperHandler.publishStatus(
-									defaultHttpClient, status);
+									publishingDefaultHttpClient, status);
 
 							statusSize++;
 						} catch (HandlerException e) {
