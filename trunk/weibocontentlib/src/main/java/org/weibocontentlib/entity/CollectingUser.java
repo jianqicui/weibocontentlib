@@ -1,6 +1,6 @@
 package org.weibocontentlib.entity;
 
-public class CollectedUser {
+public class CollectingUser {
 
 	private int id;
 	private String userId;

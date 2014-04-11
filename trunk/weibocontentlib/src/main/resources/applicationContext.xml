@@ -121,7 +121,7 @@
 		<property name="jdbcTemplate" ref="jdbcTemplate" />
 	</bean>
 
-	<bean id="collectedUserDao" class="org.weibocontentlib.dao.jdbc.CollectedUserJdbcDao">
+	<bean id="collectingUserDao" class="org.weibocontentlib.dao.jdbc.CollectingUserJdbcDao">
 		<property name="jdbcTemplate" ref="jdbcTemplate" />
 	</bean>
 
@@ -146,9 +146,9 @@
 		<property name="typeDao" ref="typeDao" />
 	</bean>
 
-	<bean id="collectedUserService"
-		class="org.weibocontentlib.service.impl.CollectedUserServiceImpl">
-		<property name="collectedUserDao" ref="collectedUserDao" />
+	<bean id="collectingUserService"
+		class="org.weibocontentlib.service.impl.CollectingUserServiceImpl">
+		<property name="collectingUserDao" ref="collectingUserDao" />
 	</bean>
 
 	<bean id="statusService" class="org.weibocontentlib.service.impl.StatusServiceImpl">
@@ -171,11 +171,11 @@
 		<property name="activeUserService" ref="activeUserService" />
 		<property name="categoryService" ref="categoryService" />
 		<property name="typeService" ref="typeService" />
-		<property name="collectedUserService" ref="collectedUserService" />
+		<property name="collectingUserService" ref="collectingUserService" />
 		<property name="statusService" ref="statusService" />
 		<property name="weiboHandler" ref="weiboHandler" />
 		<property name="filteredStatusSize">
-			<value>2</value>
+			<value>10</value>
 		</property>
 		<property name="transferedStatusSize">
 			<value>10</value>
@@ -194,12 +194,10 @@
 	<!-- Task -->
 	<task:scheduler id="scheduler" pool-size="10" />
 	<task:scheduled-tasks scheduler="scheduler">
-		<task:scheduled ref="weiboContentLibAction" method="collectStatuses"
-			cron="0 0 0,4,8,12,16,20 * * ?" />
-		<task:scheduled ref="weiboContentLibAction" method="filterStatuses"
-			cron="0 0 1,5,9,13,17,21 * * ?" />
+		<task:scheduled ref="weiboContentLibAction" method="collectAndFilterStatuses"
+			fixed-delay="60000" />
 		<task:scheduled ref="weiboContentLibAction" method="transferStatuses"
-			cron="0 0 3,7,11,15,19,23 * * ?" />
+			cron="0 0 0,2,4,6,8,10,12,14,16,18,20,22 * * ?" />
 		<task:scheduled ref="weiboContentLibAction" method="publishStatuses"
 			cron="0 0 0,2,4,6,8,10,12,14,16,18,20,22 * * ?" />
 	</task:scheduled-tasks>
