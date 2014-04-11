@@ -116,6 +116,24 @@ public class WeiboHandler {
 		return result;
 	}
 
+	private String loginWeiboQuery(String result) throws HandlerException {
+		JsonNode jsonNode = getJsonNode(result);
+
+		String arrUrl = ((ArrayNode) jsonNode.get("arrURL")).get(0).asText();
+
+		String query;
+
+		try {
+			URI uri = new URI(arrUrl);
+
+			query = uri.getQuery();
+		} catch (URISyntaxException e) {
+			throw new HandlerException(e);
+		}
+
+		return query;
+	}
+
 	private String loginWeibo(HttpClient httpClient, String query)
 			throws HandlerException {
 		StringBuilder url = new StringBuilder();
@@ -145,22 +163,17 @@ public class WeiboHandler {
 		// crossDomain
 		String result = crossDomain(httpClient);
 
-		JsonNode jsonNode = getJsonNode(result);
-
-		String arrUrl = ((ArrayNode) jsonNode.get("arrURL")).get(0).asText();
-
-		String query;
-
-		try {
-			URI uri = new URI(arrUrl);
-
-			query = uri.getQuery();
-		} catch (URISyntaxException e) {
-			throw new HandlerException(e);
-		}
+		// loginWeiboQuery
+		String query = loginWeiboQuery(result);
 
 		// loginWeibo
-		loginWeibo(httpClient, query);
+		result = loginWeibo(httpClient, query);
+
+		if (!result.startsWith("sinaSSOController.doCrossDomainCallBack")) {
+			query = loginWeiboQuery(result);
+
+			loginWeibo(httpClient, query);
+		}
 	}
 
 	public int getPageSize(HttpClient httpClient, String userId)

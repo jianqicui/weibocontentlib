@@ -33,7 +33,7 @@ import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.PoolingClientConnectionManager;
 import org.apache.http.impl.conn.SchemeRegistryFactory;
-import org.apache.http.impl.cookie.BasicClientCookie2;
+import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.CoreConnectionPNames;
 import org.slf4j.Logger;
@@ -42,7 +42,7 @@ import org.weibocontentlib.action.exception.ActionException;
 import org.weibocontentlib.entity.ActiveUser;
 import org.weibocontentlib.entity.ActiveUserPhase;
 import org.weibocontentlib.entity.Category;
-import org.weibocontentlib.entity.CollectedUser;
+import org.weibocontentlib.entity.CollectingUser;
 import org.weibocontentlib.entity.SaeStorage;
 import org.weibocontentlib.entity.Status;
 import org.weibocontentlib.entity.StatusPhase;
@@ -54,7 +54,7 @@ import org.weibocontentlib.handler.WeiboHandler;
 import org.weibocontentlib.handler.exception.HandlerException;
 import org.weibocontentlib.service.ActiveUserService;
 import org.weibocontentlib.service.CategoryService;
-import org.weibocontentlib.service.CollectedUserService;
+import org.weibocontentlib.service.CollectingUserService;
 import org.weibocontentlib.service.StatusService;
 import org.weibocontentlib.service.TypeService;
 import org.weibocontentlib.service.exception.ServiceException;
@@ -75,7 +75,7 @@ public class WeiboContentLibAction {
 
 	private TypeService typeService;
 
-	private CollectedUserService collectedUserService;
+	private CollectingUserService collectingUserService;
 
 	private StatusService statusService;
 
@@ -115,9 +115,9 @@ public class WeiboContentLibAction {
 		this.typeService = typeService;
 	}
 
-	public void setCollectedUserService(
-			CollectedUserService collectedUserService) {
-		this.collectedUserService = collectedUserService;
+	public void setCollectingUserService(
+			CollectingUserService collectingUserService) {
+		this.collectingUserService = collectingUserService;
 	}
 
 	public void setStatusService(StatusService statusService) {
@@ -265,38 +265,17 @@ public class WeiboContentLibAction {
 			boolean secure = (boolean) map.get("secure");
 			int version = (int) map.get("version");
 
-			String commentURL = (String) map.get("commentURL");
+			BasicClientCookie basicClientCookie = new BasicClientCookie(name,
+					value);
 
-			int[] ports = null;
-			if (map.get("ports") != null) {
-				String[] portsStrings = ((String) map.get("ports")).split(",");
+			basicClientCookie.setComment(comment);
+			basicClientCookie.setDomain(domain);
+			basicClientCookie.setExpiryDate(expiryDate);
+			basicClientCookie.setPath(path);
+			basicClientCookie.setSecure(secure);
+			basicClientCookie.setVersion(version);
 
-				ports = new int[portsStrings.length];
-
-				for (int i = 0; i < portsStrings.length; i++) {
-					String portString = portsStrings[i];
-
-					ports[i] = Integer.parseInt(portString);
-				}
-			}
-
-			boolean persistent = (boolean) map.get("persistent");
-
-			BasicClientCookie2 basicClientCookie2 = new BasicClientCookie2(
-					name, value);
-
-			basicClientCookie2.setComment(comment);
-			basicClientCookie2.setDomain(domain);
-			basicClientCookie2.setExpiryDate(expiryDate);
-			basicClientCookie2.setPath(path);
-			basicClientCookie2.setSecure(secure);
-			basicClientCookie2.setVersion(version);
-
-			basicClientCookie2.setCommentURL(commentURL);
-			basicClientCookie2.setPorts(ports);
-			basicClientCookie2.setDiscard(persistent);
-
-			basicCookieStore.addCookie(basicClientCookie2);
+			basicCookieStore.addCookie(basicClientCookie);
 		}
 
 		defaultHttpClient.setCookieStore(basicCookieStore);
@@ -340,7 +319,7 @@ public class WeiboContentLibAction {
 		return currentPageNo;
 	}
 
-	public void collectStatuses() {
+	private void collectStatuses() {
 		ActiveUser activeUser;
 
 		ActiveUserPhase activeUserPhase = ActiveUserPhase.querying;
@@ -405,21 +384,21 @@ public class WeiboContentLibAction {
 						.format("Begin to collect statuses, categoryId = %s, typeId = %s, statusSize = %s",
 								categoryId, typeId, statusSize));
 
-				List<CollectedUser> collectedUserList;
+				List<CollectingUser> collectingUserList;
 
 				try {
-					collectedUserList = collectedUserService
-							.getCollectedUserList(categoryId, typeId);
+					collectingUserList = collectingUserService
+							.getCollectingUserList(categoryId, typeId);
 				} catch (ServiceException e) {
 					logger.error("Exception", e);
 
 					throw new ActionException(e);
 				}
 
-				for (CollectedUser collectedUser : collectedUserList) {
-					String userId = collectedUser.getUserId();
-					int pageSize = collectedUser.getPageSize();
-					int pageNo = collectedUser.getPageNo();
+				for (CollectingUser collectingUser : collectingUserList) {
+					String userId = collectingUser.getUserId();
+					int pageSize = collectingUser.getPageSize();
+					int pageNo = collectingUser.getPageNo();
 
 					int currentPageSize;
 
@@ -448,12 +427,12 @@ public class WeiboContentLibAction {
 
 						currentPageNo--;
 
-						collectedUser.setPageSize(currentPageSize);
-						collectedUser.setPageNo(currentPageNo);
+						collectingUser.setPageSize(currentPageSize);
+						collectingUser.setPageNo(currentPageNo);
 
 						try {
-							collectedUserService.updateCollectedUser(
-									categoryId, typeId, collectedUser);
+							collectingUserService.updateCollectingUser(
+									categoryId, typeId, collectingUser);
 						} catch (ServiceException e) {
 							logger.error("Exception", e);
 
@@ -523,7 +502,7 @@ public class WeiboContentLibAction {
 		return similarStatusExisting;
 	}
 
-	public void filterStatuses() {
+	private void filterStatuses() {
 		List<Category> categoryList;
 
 		try {
@@ -603,6 +582,12 @@ public class WeiboContentLibAction {
 								categoryId, typeId, statusSize));
 			}
 		}
+	}
+
+	public void collectAndFilterStatuses() {
+		collectStatuses();
+
+		filterStatuses();
 	}
 
 	private byte[] getTextBytes(String text) {

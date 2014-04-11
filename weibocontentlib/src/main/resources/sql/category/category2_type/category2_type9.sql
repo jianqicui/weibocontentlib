@@ -1,6 +1,6 @@
 use weibocontentlib;
 
-create table category2_type9_user_collected (
+create table category2_type9_user_collecting (
 	id int not null auto_increment,
 	user_id varchar(20) not null,
 	page_size int not null,
@@ -8,7 +8,7 @@ create table category2_type9_user_collected (
 	primary key (id)
 );
 
-insert into category2_type9_user_collected (user_id) values 
+insert into category2_type9_user_collecting (user_id) values 
 ('2637607682'),
 ('1931173132');
 

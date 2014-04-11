@@ -8,26 +8,26 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.weibocontentlib.dao.CollectedUserDao;
+import org.weibocontentlib.dao.CollectingUserDao;
 import org.weibocontentlib.dao.exception.DaoException;
-import org.weibocontentlib.entity.CollectedUser;
+import org.weibocontentlib.entity.CollectingUser;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:applicationContext.xml" })
-public class CollectedUserJdbcDaoTest {
+public class CollectingUserJdbcDaoTest {
 
 	@Autowired
-	private CollectedUserDao collectedUserDao;
+	private CollectingUserDao collectingUserDao;
 
 	@Test
-	public void testGetCollectedUserList() throws DaoException {
+	public void testGetCollectingUserList() throws DaoException {
 		int categoryId = 1;
 		int typeId = 1;
 
-		List<CollectedUser> collectedUserList = collectedUserDao
-				.getCollectedUserList(categoryId, typeId);
+		List<CollectingUser> collectingUserList = collectingUserDao
+				.getCollectingUserList(categoryId, typeId);
 
-		Assert.assertNotNull(collectedUserList);
+		Assert.assertNotNull(collectingUserList);
 	}
 
 }
