@@ -86,7 +86,7 @@ public class StatusApiResource {
 			@RequestParam("toStatusPhase") StatusPhase toStatusPhase,
 			@RequestBody Status status) {
 		status.setId(id);
-
+		
 		try {
 			statusService.moveStatus(categoryId, typeId, fromStatusPhase,
 					toStatusPhase, status);

@@ -21,6 +21,14 @@ create table category2_type5_user_applying (
   	primary key (id)
 );
 
+create table category2_type5_user_transfering (
+	id int not null auto_increment,
+  	cookies text not null,
+  	transfering_index int not null default 0,
+  	created_timestamp timestamp not null,
+  	primary key (id)
+);
+
 create table category2_type5_status_collected (
 	id int not null auto_increment,
 	status_text varchar(300) not null,
@@ -38,14 +46,6 @@ create table category2_type5_status_filtered (
 );
 
 create table category2_type5_status_verified (
-	id int not null auto_increment,
-	status_text varchar(300) not null,
-	status_picture_file varchar(200),
-	created_timestamp timestamp not null default current_timestamp,
-	primary key (id)
-);
-
-create table category2_type5_status_transfered (
 	id int not null auto_increment,
 	status_text varchar(300) not null,
 	status_picture_file varchar(200),

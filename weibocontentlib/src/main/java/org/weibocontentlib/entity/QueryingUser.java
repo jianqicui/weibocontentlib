@@ -1,6 +1,6 @@
 package org.weibocontentlib.entity;
 
-public class ActiveUser {
+public class QueryingUser {
 
 	private int id;
 	private byte[] cookies;
@@ -20,5 +20,5 @@ public class ActiveUser {
 	public void setCookies(byte[] cookies) {
 		this.cookies = cookies;
 	}
-
+	
 }

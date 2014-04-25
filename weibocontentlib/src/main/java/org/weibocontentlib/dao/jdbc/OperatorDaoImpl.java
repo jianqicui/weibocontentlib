@@ -40,7 +40,7 @@ public class OperatorDaoImpl implements OperatorDao {
 
 	@Override
 	public Operator getOperatorByName(String name) throws DaoException {
-		String sql = "select name, password, role from operator where name = ?";
+		String sql = "select name, password, role from operator where name = ? order by id";
 
 		try {
 			return jdbcTemplate.queryForObject(sql, rowMapper, name);

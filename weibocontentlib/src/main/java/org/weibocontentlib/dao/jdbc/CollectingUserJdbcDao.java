@@ -52,7 +52,7 @@ public class CollectingUserJdbcDao implements CollectingUserDao {
 	public List<CollectingUser> getCollectingUserList(int categoryId, int typeId)
 			throws DaoException {
 		String sql = "select id, user_id, page_size, page_no from "
-				+ getTableName(categoryId, typeId);
+				+ getTableName(categoryId, typeId) + " order by id";
 
 		try {
 			return jdbcTemplate.query(sql, rowMapper);

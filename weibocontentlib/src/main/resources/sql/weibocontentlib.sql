@@ -10,13 +10,6 @@ create table user_querying (
   	primary key (id)
 );
 
-create table user_transfering (
-	id int not null auto_increment,
-  	cookies text not null,
-  	created_timestamp timestamp not null,
-  	primary key (id)
-);
-
 create table operator (
 	id int not null auto_increment,
 	name varchar(10) not null,
