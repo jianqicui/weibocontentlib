@@ -198,6 +198,8 @@ function updateStatus(categoryId, typeId, id) {
 	var statusDivId = getStatusDivId(id);
 	
 	var statusText = $('#' + statusDivId + ' > div:eq(0) > textarea').val();
+	statusText = statusText.replace(/"/g, '\\"');
+	
 	var statusPictureFile = $('#' + statusDivId + ' > div:eq(1) > input').val();
 	
 	$.ajax({

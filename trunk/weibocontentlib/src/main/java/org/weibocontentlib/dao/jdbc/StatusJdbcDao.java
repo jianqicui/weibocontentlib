@@ -80,11 +80,12 @@ public class StatusJdbcDao implements StatusDao {
 	public List<Status> getStatusList(int categoryId, int typeId,
 			StatusPhase statusPhase, int index, int size) throws DaoException {
 		String sql = "select id, status_text, status_picture_file from "
-				+ getTableName(categoryId, typeId, statusPhase) + " limit "
-				+ index + ", " + size;
+				+ getTableName(categoryId, typeId, statusPhase)
+				+ " order by id limit ?, ?";
 
 		try {
-			return jdbcTemplate.query(sql, rowMapper);
+			return jdbcTemplate.query(sql, rowMapper, new Object[] { index,
+					size });
 		} catch (Exception e) {
 			throw new DaoException(e);
 		}
@@ -128,10 +129,11 @@ public class StatusJdbcDao implements StatusDao {
 			StatusPhase statusPhase, int index, int size) throws DaoException {
 		String sql = "select id, status_text, status_picture_file from "
 				+ getTableName(categoryId, typeId, statusPhase)
-				+ " order by rand() limit " + index + ", " + size;
+				+ " order by rand() limit ?, ?";
 
 		try {
-			return jdbcTemplate.query(sql, rowMapper);
+			return jdbcTemplate.query(sql, rowMapper, new Object[] { index,
+					size });
 		} catch (Exception e) {
 			throw new DaoException(e);
 		}

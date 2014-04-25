@@ -39,23 +39,26 @@ import org.apache.http.params.CoreConnectionPNames;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.weibocontentlib.action.exception.ActionException;
-import org.weibocontentlib.entity.ActiveUser;
-import org.weibocontentlib.entity.ActiveUserPhase;
+import org.weibocontentlib.entity.ApplyingUser;
 import org.weibocontentlib.entity.Category;
 import org.weibocontentlib.entity.CollectingUser;
+import org.weibocontentlib.entity.QueryingUser;
 import org.weibocontentlib.entity.SaeStorage;
 import org.weibocontentlib.entity.Status;
 import org.weibocontentlib.entity.StatusPhase;
+import org.weibocontentlib.entity.TransferingUser;
 import org.weibocontentlib.entity.Type;
 import org.weibocontentlib.handler.SaeAppBatchhelperHandler;
 import org.weibocontentlib.handler.SaeStorageHandler;
 import org.weibocontentlib.handler.VdiskHandler;
 import org.weibocontentlib.handler.WeiboHandler;
 import org.weibocontentlib.handler.exception.HandlerException;
-import org.weibocontentlib.service.ActiveUserService;
+import org.weibocontentlib.service.ApplyingUserService;
 import org.weibocontentlib.service.CategoryService;
 import org.weibocontentlib.service.CollectingUserService;
+import org.weibocontentlib.service.QueryingUserService;
 import org.weibocontentlib.service.StatusService;
+import org.weibocontentlib.service.TransferingUserService;
 import org.weibocontentlib.service.TypeService;
 import org.weibocontentlib.service.exception.ServiceException;
 
@@ -69,7 +72,7 @@ public class WeiboContentLibAction {
 	private static final Logger logger = LoggerFactory
 			.getLogger(WeiboContentLibAction.class);
 
-	private ActiveUserService activeUserService;
+	private QueryingUserService queryingUserService;
 
 	private CategoryService categoryService;
 
@@ -81,9 +84,11 @@ public class WeiboContentLibAction {
 
 	private WeiboHandler weiboHandler;
 
-	private int filteredStatusSize;
+	private int filteringStatusSize;
 
-	private int transferedStatusSize;
+	private TransferingUserService transferingUserService;
+
+	private SaeAppBatchhelperHandler saeAppBatchhelperHandler;
 
 	private VdiskHandler vdiskHandler;
 
@@ -93,7 +98,9 @@ public class WeiboContentLibAction {
 
 	private String saeStorageSecretKey;
 
-	private SaeAppBatchhelperHandler saeAppBatchhelperHandler;
+	private int transferingStatusSize;
+
+	private ApplyingUserService applyingUserService;
 
 	private ObjectMapper objectMapper;
 
@@ -103,8 +110,8 @@ public class WeiboContentLibAction {
 
 	private DefaultHttpClient publishingDefaultHttpClient;
 
-	public void setActiveUserService(ActiveUserService activeUserService) {
-		this.activeUserService = activeUserService;
+	public void setQueryingUserService(QueryingUserService queryingUserService) {
+		this.queryingUserService = queryingUserService;
 	}
 
 	public void setCategoryService(CategoryService categoryService) {
@@ -128,12 +135,18 @@ public class WeiboContentLibAction {
 		this.weiboHandler = weiboHandler;
 	}
 
-	public void setFilteredStatusSize(int filteredStatusSize) {
-		this.filteredStatusSize = filteredStatusSize;
+	public void setFilteringStatusSize(int filteringStatusSize) {
+		this.filteringStatusSize = filteringStatusSize;
 	}
 
-	public void setTransferedStatusSize(int transferedStatusSize) {
-		this.transferedStatusSize = transferedStatusSize;
+	public void setTransferingUserService(
+			TransferingUserService transferingUserService) {
+		this.transferingUserService = transferingUserService;
+	}
+
+	public void setSaeAppBatchhelperHandler(
+			SaeAppBatchhelperHandler saeAppBatchhelperHandler) {
+		this.saeAppBatchhelperHandler = saeAppBatchhelperHandler;
 	}
 
 	public void setVdiskHandler(VdiskHandler vdiskHandler) {
@@ -152,9 +165,12 @@ public class WeiboContentLibAction {
 		this.saeStorageSecretKey = saeStorageSecretKey;
 	}
 
-	public void setSaeAppBatchhelperHandler(
-			SaeAppBatchhelperHandler saeAppBatchhelperHandler) {
-		this.saeAppBatchhelperHandler = saeAppBatchhelperHandler;
+	public void setTransferingStatusSize(int transferingStatusSize) {
+		this.transferingStatusSize = transferingStatusSize;
+	}
+
+	public void setApplyingUserService(ApplyingUserService applyingUserService) {
+		this.applyingUserService = applyingUserService;
 	}
 
 	public void initialize() {
@@ -320,19 +336,17 @@ public class WeiboContentLibAction {
 	}
 
 	private void collectStatuses() {
-		ActiveUser activeUser;
-
-		ActiveUserPhase activeUserPhase = ActiveUserPhase.querying;
+		QueryingUser queryingUser;
 
 		try {
-			activeUser = activeUserService.getActiveUser(activeUserPhase);
+			queryingUser = queryingUserService.getQueryingUser();
 		} catch (ServiceException e) {
 			logger.error("Exception", e);
 
 			throw new ActionException(e);
 		}
 
-		setCookies(collectingDefaultHttpClient, activeUser.getCookies());
+		setCookies(collectingDefaultHttpClient, queryingUser.getCookies());
 
 		try {
 			weiboHandler.refresh(collectingDefaultHttpClient);
@@ -340,10 +354,10 @@ public class WeiboContentLibAction {
 			return;
 		}
 
-		activeUser.setCookies(getCookies(collectingDefaultHttpClient));
+		queryingUser.setCookies(getCookies(collectingDefaultHttpClient));
 
 		try {
-			activeUserService.updateActiveUser(activeUserPhase, activeUser);
+			queryingUserService.updateQueryingUser(queryingUser);
 		} catch (ServiceException e) {
 			logger.error("Exception", e);
 
@@ -378,7 +392,7 @@ public class WeiboContentLibAction {
 
 				List<Status> statusList = new ArrayList<Status>();
 
-				int statusSize = 0;
+				int statusSize = statusList.size();
 
 				logger.debug(String
 						.format("Begin to collect statuses, categoryId = %s, typeId = %s, statusSize = %s",
@@ -413,14 +427,14 @@ public class WeiboContentLibAction {
 							currentPageSize);
 
 					if (currentPageNo > 1) {
-						List<Status> statuses;
+						List<Status> statuses = new ArrayList<Status>();
 
 						try {
 							statuses = weiboHandler.getStatusListByPageNo(
 									collectingDefaultHttpClient, userId,
 									currentPageNo);
 						} catch (HandlerException e) {
-							statuses = new ArrayList<Status>();
+
 						}
 
 						statusList.addAll(statuses);
@@ -485,18 +499,6 @@ public class WeiboContentLibAction {
 
 				throw new ActionException(e);
 			}
-
-			if (!similarStatusExisting) {
-				try {
-					similarStatusExisting = statusService
-							.isSimilarStatusExisting(categoryId, typeId,
-									StatusPhase.transfered, status);
-				} catch (ServiceException e) {
-					logger.error("Exception", e);
-
-					throw new ActionException(e);
-				}
-			}
 		}
 
 		return similarStatusExisting;
@@ -534,7 +536,7 @@ public class WeiboContentLibAction {
 				try {
 					statusList = statusService.getStatusList(categoryId,
 							typeId, StatusPhase.collected, 0,
-							filteredStatusSize);
+							filteringStatusSize);
 				} catch (ServiceException e) {
 					logger.error("Exception", e);
 
@@ -542,6 +544,10 @@ public class WeiboContentLibAction {
 				}
 
 				int statusSize = statusList.size();
+
+				if (statusSize < filteringStatusSize) {
+					return;
+				}
 
 				logger.debug(String
 						.format("Begin to filter statuses, categoryId = %s, typeId = %s, statusSize = %s",
@@ -693,45 +699,6 @@ public class WeiboContentLibAction {
 	}
 
 	public void transferStatuses() {
-		ActiveUser activeUser;
-
-		ActiveUserPhase activeUserPhase = ActiveUserPhase.transfering;
-
-		try {
-			activeUser = activeUserService.getActiveUser(activeUserPhase);
-		} catch (ServiceException e) {
-			logger.error("Exception", e);
-
-			throw new ActionException(e);
-		}
-
-		setCookies(transferingDefaultHttpClient, activeUser.getCookies());
-
-		try {
-			weiboHandler.refresh(transferingDefaultHttpClient);
-		} catch (HandlerException e) {
-			return;
-		}
-
-		activeUser.setCookies(getCookies(transferingDefaultHttpClient));
-
-		try {
-			activeUserService.updateActiveUser(activeUserPhase, activeUser);
-		} catch (ServiceException e) {
-			logger.error("Exception", e);
-
-			throw new ActionException(e);
-		}
-
-		SaeStorage saeStorage;
-
-		try {
-			saeStorage = saeStorageHandler.login(transferingDefaultHttpClient,
-					saeStorageAccessKey, saeStorageSecretKey);
-		} catch (HandlerException e) {
-			return;
-		}
-
 		List<Category> categoryList;
 
 		try {
@@ -758,12 +725,25 @@ public class WeiboContentLibAction {
 			for (Type type : typeList) {
 				int typeId = type.getTypeId();
 
+				TransferingUser transferingUser;
+
+				try {
+					transferingUser = transferingUserService
+							.getTransferingUser(categoryId, typeId);
+				} catch (ServiceException e) {
+					logger.error("Exception", e);
+
+					throw new ActionException(e);
+				}
+
 				List<Status> statusList;
+
+				int transferingIndex = transferingUser.getTransferingIndex();
 
 				try {
 					statusList = statusService.getStatusList(categoryId,
-							typeId, StatusPhase.verified, 0,
-							transferedStatusSize);
+							typeId, StatusPhase.verified, transferingIndex,
+							transferingStatusSize);
 				} catch (ServiceException e) {
 					logger.error("Exception", e);
 
@@ -771,6 +751,38 @@ public class WeiboContentLibAction {
 				}
 
 				int statusSize = statusList.size();
+
+				if (statusSize < transferingStatusSize) {
+					return;
+				}
+
+				transferingIndex = transferingIndex + transferingStatusSize;
+
+				transferingUser.setTransferingIndex(transferingIndex);
+
+				setCookies(transferingDefaultHttpClient,
+						transferingUser.getCookies());
+
+				try {
+					weiboHandler.refresh(transferingDefaultHttpClient);
+				} catch (HandlerException e) {
+					continue;
+				}
+
+				transferingUser
+						.setCookies(getCookies(transferingDefaultHttpClient));
+
+				SaeStorage saeStorage;
+
+				try {
+					saeStorage = saeStorageHandler.login(
+							transferingDefaultHttpClient, saeStorageAccessKey,
+							saeStorageSecretKey);
+				} catch (HandlerException e) {
+					logger.error("Exception", e);
+
+					throw new ActionException(e);
+				}
 
 				logger.debug(String
 						.format("Begin to transfer statuses, categoryId = %s, typeId = %s, statusSize = %s",
@@ -790,22 +802,21 @@ public class WeiboContentLibAction {
 								saeStorage, status, transferedName);
 					}
 
-					try {
-						statusService.moveStatus(categoryId, typeId,
-								StatusPhase.verified, StatusPhase.transfered,
-								status);
-
-						statusSize++;
-					} catch (ServiceException e) {
-						logger.error("Exception", e);
-
-						throw new ActionException(e);
-					}
+					statusSize++;
 				}
 
 				logger.debug(String
 						.format("End to transfer statuses, categoryId = %s, typeId = %s, statusSize = %s",
 								categoryId, typeId, statusSize));
+
+				try {
+					transferingUserService.updateTransferingUser(categoryId,
+							typeId, transferingUser);
+				} catch (ServiceException e) {
+					logger.error("Exception", e);
+
+					throw new ActionException(e);
+				}
 			}
 		}
 	}
@@ -837,22 +848,40 @@ public class WeiboContentLibAction {
 			for (Type type : typeList) {
 				int typeId = type.getTypeId();
 
-				ActiveUserPhase activeUserPhase = ActiveUserPhase.applying;
-
-				List<ActiveUser> activeUserList;
+				List<ApplyingUser> applyingUserList;
 
 				try {
-					activeUserList = activeUserService.getActiveUserList(
-							categoryId, typeId, activeUserPhase);
+					applyingUserList = applyingUserService.getApplyingUserList(
+							categoryId, typeId);
 				} catch (ServiceException e) {
 					logger.error("Exception", e);
 
 					throw new ActionException(e);
 				}
 
-				for (ActiveUser activeUser : activeUserList) {
+				for (ApplyingUser applyingUser : applyingUserList) {
+					List<Status> statusList;
+
+					int publishingStatusSize = 1;
+
+					try {
+						statusList = statusService.getRandomStatusList(
+								categoryId, typeId, StatusPhase.verified, 0,
+								publishingStatusSize);
+					} catch (ServiceException e) {
+						logger.error("Exception", e);
+
+						throw new ActionException(e);
+					}
+
+					int statusSize = statusList.size();
+
+					if (statusSize < publishingStatusSize) {
+						return;
+					}
+
 					setCookies(publishingDefaultHttpClient,
-							activeUser.getCookies());
+							applyingUser.getCookies());
 
 					try {
 						weiboHandler.refresh(publishingDefaultHttpClient);
@@ -860,7 +889,7 @@ public class WeiboContentLibAction {
 						continue;
 					}
 
-					activeUser
+					applyingUser
 							.setCookies(getCookies(publishingDefaultHttpClient));
 
 					try {
@@ -871,20 +900,6 @@ public class WeiboContentLibAction {
 
 						throw new ActionException(e);
 					}
-
-					List<Status> statusList;
-
-					try {
-						statusList = statusService.getRandomStatusList(
-								categoryId, typeId, StatusPhase.transfered, 0,
-								1);
-					} catch (ServiceException e) {
-						logger.error("Exception", e);
-
-						throw new ActionException(e);
-					}
-
-					int statusSize = statusList.size();
 
 					logger.debug(String
 							.format("Begin to public statuses, categoryId = %s, typeId = %s, statusSize = %s",
@@ -911,8 +926,8 @@ public class WeiboContentLibAction {
 				}
 
 				try {
-					activeUserService.updateActiveUserList(categoryId, typeId,
-							activeUserPhase, activeUserList);
+					applyingUserService.updateApplyingUserList(categoryId,
+							typeId, applyingUserList);
 				} catch (ServiceException e) {
 					logger.error("Exception", e);
 
