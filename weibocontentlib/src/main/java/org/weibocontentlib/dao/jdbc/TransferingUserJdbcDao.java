@@ -62,7 +62,9 @@ public class TransferingUserJdbcDao implements TransferingUserDao {
 	@Override
 	public void updateTransferingUser(int categoryId, int typeId,
 			TransferingUser transferingUser) throws DaoException {
-		String sql = "update user_transfering set cookies = ?, transfering_index = ?, created_timestamp = ?";
+		String sql = "update "
+				+ getTableName(categoryId, typeId)
+				+ " set cookies = ?, transfering_index = ?, created_timestamp = ?";
 
 		try {
 			jdbcTemplate.update(sql, transferingUser.getCookies(),
