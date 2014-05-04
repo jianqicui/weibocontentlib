@@ -848,6 +848,26 @@ public class WeiboContentLibAction {
 			for (Type type : typeList) {
 				int typeId = type.getTypeId();
 
+				List<Status> statusList;
+
+				int publishingStatusSize = 1;
+
+				try {
+					statusList = statusService.getRandomStatusList(categoryId,
+							typeId, StatusPhase.verified, 0,
+							publishingStatusSize);
+				} catch (ServiceException e) {
+					logger.error("Exception", e);
+
+					throw new ActionException(e);
+				}
+
+				int statusSize = statusList.size();
+
+				if (statusSize < publishingStatusSize) {
+					return;
+				}
+
 				List<ApplyingUser> applyingUserList;
 
 				try {
@@ -860,26 +880,6 @@ public class WeiboContentLibAction {
 				}
 
 				for (ApplyingUser applyingUser : applyingUserList) {
-					List<Status> statusList;
-
-					int publishingStatusSize = 1;
-
-					try {
-						statusList = statusService.getRandomStatusList(
-								categoryId, typeId, StatusPhase.verified, 0,
-								publishingStatusSize);
-					} catch (ServiceException e) {
-						logger.error("Exception", e);
-
-						throw new ActionException(e);
-					}
-
-					int statusSize = statusList.size();
-
-					if (statusSize < publishingStatusSize) {
-						return;
-					}
-
 					setCookies(publishingDefaultHttpClient,
 							applyingUser.getCookies());
 
@@ -902,7 +902,7 @@ public class WeiboContentLibAction {
 					}
 
 					logger.debug(String
-							.format("Begin to public statuses, categoryId = %s, typeId = %s, statusSize = %s",
+							.format("Begin to publish statuses, categoryId = %s, typeId = %s, statusSize = %s",
 									categoryId, typeId, statusSize));
 
 					statusSize = 0;
@@ -921,7 +921,7 @@ public class WeiboContentLibAction {
 					}
 
 					logger.debug(String
-							.format("End to public statuses, categoryId = %s, typeId = %s, statusSize = %s",
+							.format("End to publish statuses, categoryId = %s, typeId = %s, statusSize = %s",
 									categoryId, typeId, statusSize));
 				}
 
