@@ -64,6 +64,7 @@ import org.weibocontentlib.service.exception.ServiceException;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -243,12 +244,13 @@ public class WeiboContentLibAction {
 				basicHttpParams);
 	}
 
-	@SuppressWarnings("unchecked")
 	private void setCookies(DefaultHttpClient defaultHttpClient, byte[] cookies) {
 		List<Map<String, Object>> list;
 
 		try {
-			list = objectMapper.readValue(cookies, List.class);
+			list = objectMapper.readValue(cookies,
+					new TypeReference<List<Map<String, Object>>>() {
+					});
 		} catch (JsonParseException e) {
 			logger.error("Exception", e);
 
